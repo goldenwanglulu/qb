@@ -14,6 +14,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <!-- 引入 Babel 讓瀏覽器即時編譯 JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- 引入 Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -21,6 +23,11 @@
   <!-- 引入 React 元件與邏輯 -->
   <script type="text/babel">
 const { useState, useEffect } = React;
+
+// --- Supabase Setup ---
+const SUPABASE_URL = 'https://yphxvwbjqrdnkrwsaulj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwaHh2d2JqcXJkbmtyd3NhdWxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjE4MTAsImV4cCI6MjA5Mjc5NzgxMH0.7Q-gRSrQ_dHxP4gc9eZchAJOT9qnC9J4xN4mfdPQHLI';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // --- Seed Data Generation ---
 const generateSeedData = () => {
@@ -308,7 +315,8 @@ const App = () => {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleSubmitSurvey = (id, answers) => {
+  const handleSubmitSurvey = async (id, answers) => {
+    // 1. Update local state
     setSurveys(prev => ({
       ...prev,
       [id]: {
@@ -318,48 +326,32 @@ const App = () => {
       }
     }));
     
-    showToast('正在傳送資料...');
+    showToast('正在上傳至資料庫...');
     
+    // 2. Format answers for better readability in Supabase
     const survey = surveys[id];
-    let emailBody = {
-      _subject: `【QB光譜】新問卷回覆 - ${new Date().toLocaleString()}`
-    };
-    
+    let formattedAnswers = {};
     survey.questions.forEach(q => {
-      emailBody[q.prompt] = answers[q.question_id] || '未填寫';
+      formattedAnswers[q.prompt] = answers[q.question_id] || '未填寫';
     });
 
-    fetch("https://formsubmit.co/ajax/goldenwang1688@gmail.com", {
-      method: "POST",
-      headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-      },
-      body: JSON.stringify(emailBody)
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success === "false" || data.success === false) {
-        throw new Error(data.message || "FormSubmit rejected the request.");
-      }
-      showToast('🎉 問卷送出成功並已寄送至您的信箱！');
-    })
-    .catch(error => {
-      console.error("Mail send error:", error);
-      showToast('⚠️ 偵測到本地環境限制，將為您自動開啟郵件軟體來寄送...');
+    // 3. Insert into Supabase
+    try {
+      const { error } = await supabase
+        .from('survey_responses')
+        .insert([{ 
+          survey_id: id, 
+          answers: answers,
+          formatted_answers: formattedAnswers
+        }]);
+
+      if (error) throw error;
       
-      // Fallback to mailto if API fails (e.g. from file:// protocol)
-      let mailBody = "【QB光譜問卷回覆內容】\n\n";
-      survey.questions.forEach(q => {
-        mailBody += `Q: ${q.prompt}\nA: ${answers[q.question_id] || '未填寫'}\n\n`;
-      });
-      
-      const mailtoLink = `mailto:goldenwang1688@gmail.com?subject=${encodeURIComponent(emailBody._subject)}&body=${encodeURIComponent(mailBody)}`;
-      
-      setTimeout(() => {
-        window.location.href = mailtoLink;
-      }, 1500);
-    });
+      showToast('🎉 問卷送出成功，已安全儲存至資料庫！');
+    } catch (error) {
+      console.error('Supabase upload error:', error);
+      showToast('⚠️上傳失敗，已將您的回答備份在本地。');
+    }
 
     navigateTo('');
   };
