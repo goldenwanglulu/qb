@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QB 光譜</title>
+  <!-- 引入 Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 引入自訂樣式 -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- 引入 React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- 引入 Babel 讓瀏覽器即時編譯 JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- 引入 React 元件與邏輯 -->
+  <script type="text/babel">
+const { useState, useEffect } = React;
+
+// --- Seed Data Generation ---
+const generateSeedData = () => {
+  const surveys = {};
+  
+  const questionTitles = [
+    "Q01｜ 當我知道身邊有「自己人」支持時，我會明顯安心下來。",
+    "Q02｜ 如果我感覺被排除在團體之外，心裡會特別不安。",
+    "Q03｜ 我很容易察覺現場的氣氛變化，並因此調整自己的行為。",
+    "Q04｜ 與熟悉的人一起行動，會讓我比獨自面對更有安全感。",
+    "Q05｜ 生活中若缺少某些固定的儀式或慣例，我會覺得不太對勁。",
+    "Q06｜ 我在乎彼此是不是站在同一邊，這會影響我是否願意付出。",
+    "Q07｜ 當團體或家庭出現分裂跡象時，我會特別緊張。",
+    "Q08｜ 即使事情不完美，只要大家還在一起，我就能接受。",
+    "Q09｜ 當事情沒有照規矩進行時，我會感到不安。",
+    "Q10｜ 我心裡通常很清楚，哪些事情是對的，哪些是不該做的。",
+    "Q11｜ 看到別人破壞規則卻沒有後果，會讓我不舒服。",
+    "Q12｜ 就算結果不理想，只要方式是正確的，我仍能接受。",
+    "Q13｜ 我對自己的生活方式有一定的自律與要求。",
+    "Q14｜ 當環境變得混亂時，我會想把秩序拉回來。",
+    "Q15｜ 我相信事情有因果，不守原則早晚會付出代價。",
+    "Q16｜ 如果我認定某件事是不對的，很難假裝沒看到。",
+    "Q17｜ 當局勢不在我掌控之中時，我會明顯變得焦躁。",
+    "Q18｜ 有時我會先行動再說，而不是等所有事情想清楚。",
+    "Q19｜ 我心裡其實相信，世界對軟弱的人並不友善。",
+    "Q20｜ 在關鍵時刻，我寧願強勢一點，也不想被人踩過去。",
+    "Q21｜ 面對衝突時，我比較在意最後是誰說了算。",
+    "Q22｜ 挑戰與對抗，反而會讓我覺得自己是活著的。",
+    "Q23｜ 被限制或被命令，常會引起我強烈的反彈。",
+    "Q24｜ 壓力一大時，我通常選擇自己扛，不太想示弱。",
+    "Q25｜ 我常把人生看成一連串需要突破的關卡。",
+    "Q26｜ 相較於感覺，我更相信理性與分析能帶來好結果。",
+    "Q27｜ 做事情時，我會自然地關注效率高不高。",
+    "Q28｜ 如果沒有實際成果，我會懷疑這件事值不值得。",
+    "Q29｜ 討論問題時，我更在意哪個方案行得通。",
+    "Q30｜ 科技或工具能幫上忙時，我會優先使用。",
+    "Q31｜ 我習慣替自己設定目標，並檢視是否達成。",
+    "Q32｜ 情緒太多，常常會讓事情變得沒效率。",
+    "Q33｜ 當身邊的人情緒低落時，我會不自覺地受到影響。",
+    "Q34｜ 我很在意每個人是不是被公平對待。",
+    "Q35｜ 即使意見不同，我也希望關係不要因此受傷。",
+    "Q36｜ 能被理解、被接住，對我來說很重要。",
+    "Q37｜ 我願意花時間聽不同立場的人把話說完。",
+    "Q38｜ 比起快速做決定，我更傾向慢慢討論。",
+    "Q39｜ 如果有人感覺被忽略，我會特別放在心上。",
+    "Q40｜ 發生衝突時，我通常會先顧及彼此的感受。",
+    "Q41｜ 當大家急著找答案時，我反而想先看清整個狀況。",
+    "Q42｜ 我不太習慣用非黑即白的方式看事情。",
+    "Q43｜ 今天有效的方法，明天不一定還適用，我能接受這點。",
+    "Q44｜ 我可以同時理解看似互相矛盾的觀點。",
+    "Q45｜ 只要對我有幫助，我不介意向任何來源學習。",
+    "Q46｜ 面對複雜問題時，我會試著找出背後的運作邏輯。",
+    "Q47｜ 有些情況下，過度介入反而會讓事情變糟。",
+    "Q48｜ 就算暫時沒有答案，我也能先觀察、不急著下結論。",
+    "Q49｜ 為了維持一段關係，我常常會先退讓自己。",
+    "Q50｜ 當對方情緒不好時，我會先懷疑是不是自己哪裡做錯。",
+    "Q51｜ 即使我感到不舒服，也很難直接拒絕對方。",
+    "Q52｜ 我常會替對方找理由，認為他只是壓力大或狀態不好。",
+    "Q53｜ 即使這段關係讓我受傷，我仍會想努力維持。",
+    "Q54｜ 最近一年中，家庭最容易卡住的情境是（可複選）",
+    "Q55｜ 在這些境中，你最容易拉扯或不舒服的對象是（可複選）",
+    "Q56｜ 你最希望改變的，最接近那一項？"
+  ];
+
+  let survey = {
+    id: `survey_1`,
+    display_number: 1,
+    title: "決策光譜 關係結構研究",
+    description: "希望透過「決策光譜」了解人們在關係中的思考與行動方式。請依你平時的感覺作答。",
+    status: "not_started",
+    total_questions: 56,
+    questions: []
+  };
+
+  questionTitles.forEach((prompt, index) => {
+    let qType = "single_choice";
+    let options = [
+      { label: "6 非常同意", value: "6" },
+      { label: "5 同意", value: "5" },
+      { label: "4 稍微同意", value: "4" },
+      { label: "3 稍微不同意", value: "3" },
+      { label: "2 不同意", value: "2" },
+      { label: "1 非常不同意", value: "1" }
+    ];
+    
+    if (index >= 53) {
+      qType = "short_text";
+      options = undefined;
+    }
+
+    survey.questions.push({
+      question_id: `q1_${index + 1}`,
+      type: qType,
+      prompt: prompt,
+      options: options,
+      required: true
+    });
+  });
+  
+  surveys[survey.id] = survey;
+  return surveys;
+};
+
+// --- Components ---
+
+const SurveyCard = ({ survey, onClick }) => {
+  const getStatusText = () => {
+    if (survey.status === 'completed') return '已完成 ✓';
+    if (survey.status === 'in_progress') return '進行中...';
+    return '未開始';
+  };
+  
+  const getButtonText = () => {
+    if (survey.status === 'completed') return '重新檢視';
+    if (survey.status === 'in_progress') return '繼續作答 →';
+    return '開始作答 →';
+  };
+
+  return (
+    <div 
+      className={`survey-card status-${survey.status}`}
+      onClick={() => onClick(survey.id)}
+    >
+      <div className="status-badge">{getStatusText()}</div>
+      <div>
+        <h2>{survey.title}</h2>
+        <p>{survey.description}</p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#9ca3af' }}>
+          共 {survey.total_questions} 題
+        </p>
+      </div>
+      <button className="start-btn">{getButtonText()}</button>
+    </div>
+  );
+};
+
+const SurveyList = ({ surveys, onSelect }) => {
+  return (
+    <div>
+      <header>
+        <h1>QB 光譜</h1>
+        <p className="subtitle">問卷展示與管理系統</p>
+      </header>
+      <div className="survey-single-container">
+        {Object.values(surveys).map(survey => (
+          <SurveyCard 
+            key={survey.id} 
+            survey={survey} 
+            onClick={onSelect} 
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SurveyForm = ({ survey, onBack, onSubmit }) => {
+  const [answers, setAnswers] = useState({});
+  
+  const handleChange = (questionId, value) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  const isSubmitDisabled = () => {
+    for (let q of survey.questions) {
+      if (q.required && !answers[q.question_id]) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isSubmitDisabled()) return;
+    onSubmit(survey.id, answers);
+  };
+
+  return (
+    <div className="survey-form-container">
+      <button className="back-btn" onClick={onBack}>
+        ← 返回列表
+      </button>
+      
+      <h2 style={{ fontSize: '1.875rem', marginBottom: '0.5rem' }}>{survey.title}</h2>
+      <p style={{ color: '#6b7280', marginBottom: '2rem' }}>{survey.description}</p>
+      
+      <form onSubmit={handleSubmit}>
+        {survey.questions.map((q, index) => (
+          <div key={q.question_id} className="question-block">
+            <div className="question-prompt">
+              {index + 1}. {q.prompt}
+              {q.required && <span className="required">*</span>}
+            </div>
+            
+            {q.type === 'single_choice' && (
+              <div className="options-group">
+                {q.options.map(opt => (
+                  <label key={opt.value} className="option-label">
+                    <input 
+                      type="radio" 
+                      name={q.question_id}
+                      value={opt.value}
+                      checked={answers[q.question_id] === opt.value}
+                      onChange={(e) => handleChange(q.question_id, e.target.value)}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            )}
+            
+            {q.type === 'short_text' && (
+              <input 
+                type="text" 
+                className="text-input"
+                placeholder="請輸入您的回答..."
+                value={answers[q.question_id] || ''}
+                onChange={(e) => handleChange(q.question_id, e.target.value)}
+              />
+            )}
+          </div>
+        ))}
+        
+        <button type="submit" className="submit-btn" disabled={isSubmitDisabled()}>
+          送出問卷
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const App = () => {
+  const [surveys, setSurveys] = useState({});
+  const [currentRoute, setCurrentRoute] = useState(window.location.hash || '');
+  const [toastMessage, setToastMessage] = useState('');
+
+  // 初始化資料與讀取 localStorage
+  useEffect(() => {
+    const defaultData = generateSeedData();
+    const savedData = localStorage.getItem('qb_spectrum_surveys');
+    
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        // Merge with default to ensure new questions are present if schema updates
+        const merged = { ...defaultData };
+        for (let key in parsed) {
+          if (merged[key]) {
+            merged[key].status = parsed[key].status;
+            merged[key].answers = parsed[key].answers || {};
+          }
+        }
+        setSurveys(merged);
+      } catch (e) {
+        setSurveys(defaultData);
+      }
+    } else {
+      setSurveys(defaultData);
+    }
+
+    // 監聽路由變化
+    const handleHashChange = () => setCurrentRoute(window.location.hash);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // 儲存至 localStorage
+  useEffect(() => {
+    if (Object.keys(surveys).length > 0) {
+      localStorage.setItem('qb_spectrum_surveys', JSON.stringify(surveys));
+    }
+  }, [surveys]);
+
+  const navigateTo = (hash) => {
+    window.location.hash = hash;
+  };
+
+  const handleSelectSurvey = (id) => {
+    navigateTo(`#survey/${id}`);
+  };
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleSubmitSurvey = (id, answers) => {
+    setSurveys(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        status: 'completed',
+        answers: answers
+      }
+    }));
+    
+    showToast('正在傳送資料...');
+    
+    const survey = surveys[id];
+    let emailBody = {
+      _subject: `【QB光譜】新問卷回覆 - ${new Date().toLocaleString()}`
+    };
+    
+    survey.questions.forEach(q => {
+      emailBody[q.prompt] = answers[q.question_id] || '未填寫';
+    });
+
+    fetch("https://formsubmit.co/ajax/goldenwang1688@gmail.com", {
+      method: "POST",
+      headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+      },
+      body: JSON.stringify(emailBody)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success === "false" || data.success === false) {
+        throw new Error(data.message || "FormSubmit rejected the request.");
+      }
+      showToast('🎉 問卷送出成功並已寄送至您的信箱！');
+    })
+    .catch(error => {
+      console.error("Mail send error:", error);
+      showToast('⚠️ 偵測到本地環境限制，將為您自動開啟郵件軟體來寄送...');
+      
+      // Fallback to mailto if API fails (e.g. from file:// protocol)
+      let mailBody = "【QB光譜問卷回覆內容】\n\n";
+      survey.questions.forEach(q => {
+        mailBody += `Q: ${q.prompt}\nA: ${answers[q.question_id] || '未填寫'}\n\n`;
+      });
+      
+      const mailtoLink = `mailto:goldenwang1688@gmail.com?subject=${encodeURIComponent(emailBody._subject)}&body=${encodeURIComponent(mailBody)}`;
+      
+      setTimeout(() => {
+        window.location.href = mailtoLink;
+      }, 1500);
+    });
+
+    navigateTo('');
+  };
+
+  // Router logic
+  const renderView = () => {
+    if (currentRoute.startsWith('#survey/')) {
+      const surveyId = currentRoute.split('/')[1];
+      const survey = surveys[surveyId];
+      if (survey) {
+        return (
+          <SurveyForm 
+            survey={survey} 
+            onBack={() => navigateTo('')}
+            onSubmit={handleSubmitSurvey}
+          />
+        );
+      }
+    }
+    
+    // Default Home view
+    return <SurveyList surveys={surveys} onSelect={handleSelectSurvey} />;
+  };
+
+  if (Object.keys(surveys).length === 0) return <div>載入中...</div>;
+
+  return (
+    <div className="container">
+      {renderView()}
+      
+      <div className={`toast ${toastMessage ? 'show' : ''}`}>
+        {toastMessage}
+      </div>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+  </script>
+</body>
+</html>
